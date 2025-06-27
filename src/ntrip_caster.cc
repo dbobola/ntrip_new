@@ -125,6 +125,7 @@ NtripCaster::~NtripCaster() {
 bool NtripCaster::Run(void) {
   struct sockaddr_in server_addr;
   memset(&server_addr, 0, sizeof(struct sockaddr_in));
+  std::cout << "[DEBUG] Run method entered" << std::endl;
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(server_port_);
   if (server_ip_.empty()) {
@@ -179,6 +180,7 @@ void NtripCaster::ThreadHandler(void) {
   service_is_running_.store(true);
   int ret;
   int alive_count;
+  std::cout << "[DEBUG] ThreadHandler method entered" << std::endl;
   std::unique_ptr<char[]> buffer(
       new char[kBufferSize], std::default_delete<char[]>());
   printf("NtripCaster service running...\n");
