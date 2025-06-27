@@ -133,26 +133,42 @@ bool NtripCaster::Run(void) {
   } else {
     server_addr.sin_addr.s_addr = inet_addr(server_ip_.c_str());
   }
+  std::cout << "[DEBUG] Creating socket..." << std::endl;
   listen_sock_ = socket(AF_INET, SOCK_STREAM, 0);
   if (listen_sock_ == -1) {
+    std::cout << "[ERROR] Socket creation failed: " << strerror(errno) << std::endl;
     exit(1);
   }
+  std::cout << "[DEBUG] Binding socket to port " << server_port_ << "..." << std::endl;
   if (bind(listen_sock_, reinterpret_cast<struct sockaddr*>(&server_addr),
       sizeof(struct sockaddr)) == -1) {
+    std::cout << "[ERROR] Bind failed: " << strerror(errno) << std::endl;
     exit(1);
   }
+  std::cout << "[DEBUG] Starting listen..." << std::endl;
   if (listen(listen_sock_, 5) == -1) {
+    std::cout << "[ERROR] Listen failed: " << strerror(errno) << std::endl;
     exit(1);
   }
+  std::cout << "[DEBUG] Creating epoll events array..." << std::endl;
   epoll_events_ = new struct epoll_event[max_count_];
   if (epoll_events_ == nullptr) {
+    std::cout << "[ERROR] Failed to allocate epoll events" << std::endl;
     exit(1);
   }
+  std::cout << "[DEBUG] Creating epoll instance..." << std::endl;
   epoll_fd_ = epoll_create(max_count_);
+  if (epoll_fd_ == -1) {
+    std::cout << "[ERROR] Epoll creation failed: " << strerror(errno) << std::endl;
+    exit(1);
+  }
+  std::cout << "[DEBUG] Registering listen socket with epoll..." << std::endl;
   EpollRegister(epoll_fd_, listen_sock_);
+  std::cout << "[DEBUG] Setting service as running..." << std::endl;
+  service_is_running_.store(true);
+  std::cout << "[DEBUG] Starting thread..." << std::endl;
   thread_.reset(&NtripCaster::ThreadHandler, this);
-
-  //thread_ = std::thread(&NtripCaster::ThreadHandler, this); 
+  std::cout << "[DEBUG] Run method completed successfully" << std::endl;
   return true;
 }
 
@@ -179,14 +195,14 @@ void NtripCaster::Stop(void) {
 //
 
 void NtripCaster::ThreadHandler(void) {
-  service_is_running_.store(true);
+  std::cout << "[DEBUG] ThreadHandler method entered" << std::endl;
   int ret;
   int alive_count;
   
-  std::cout << "[DEBUG] ThreadHandler method entered" << std::endl;
   std::unique_ptr<char[]> buffer(
       new char[kBufferSize], std::default_delete<char[]>());
   printf("NtripCaster service running...\n");
+  std::cout << "[DEBUG] Entering main epoll loop..." << std::endl;
   while (1) {
     ret = epoll_wait(epoll_fd_, epoll_events_, max_count_, time_out_);
     if (ret == 0) {
