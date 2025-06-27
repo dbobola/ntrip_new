@@ -22,6 +22,8 @@
 #include <memory>
 #include <limits>
 
+#include <thread>
+
 #include "ntrip/ntrip_util.h"
 #include "cmake_definition.h.in"
 
@@ -150,7 +152,9 @@ bool NtripCaster::Run(void) {
   }
   epoll_fd_ = epoll_create(max_count_);
   EpollRegister(epoll_fd_, listen_sock_);
-  thread_.reset(&NtripCaster::ThreadHandler, this);
+  //thread_.reset(&NtripCaster::ThreadHandler, this);
+
+  thread_ = std::thread(&NtripCaster::ThreadHandler, this); 
   return true;
 }
 
@@ -180,6 +184,7 @@ void NtripCaster::ThreadHandler(void) {
   service_is_running_.store(true);
   int ret;
   int alive_count;
+  
   std::cout << "[DEBUG] ThreadHandler method entered" << std::endl;
   std::unique_ptr<char[]> buffer(
       new char[kBufferSize], std::default_delete<char[]>());
