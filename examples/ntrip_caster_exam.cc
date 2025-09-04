@@ -27,7 +27,7 @@ using libntrip::NtripCaster;
 
 int main(int argc, char *argv[]) {
   NtripCaster ntrip_caster;
-  ntrip_caster.Init(2101, 30, 2000);
+  ntrip_caster.Init(2102, 30, 2000);
   // ntrip_caster.Init("127.0.0.1", 8090, 10, 2000);
   ntrip_caster.Run();
   std::this_thread::sleep_for(std::chrono::seconds(1));  // Maybe take longer?
