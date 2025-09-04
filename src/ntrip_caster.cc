@@ -428,11 +428,30 @@ int NtripCaster::ServerConnectRequest(
         return -1;
       }
       user_passwd_base64 = line.substr(pos_beg+1, pos_end-pos_beg-1);
-      if (Base64Decode(user_passwd_base64, &user_passwd) != 0) return -1;
-      auto pos = user_passwd.find(":");
-      if (pos == std::string::npos) return -1;
-      user = user_passwd.substr(0, pos);
-      passwd = user_passwd.substr(pos+1, user_passwd.size()-pos);
+      if (Base64Decode(user_passwd_base64, &user_passwd) != 0) {
+        // Fallback: try to get just the password without Base64 decoding
+        // This handles cases where only password is sent, not username:password
+        passwd = user_passwd_base64;  // Use the raw value as password
+        user = "";  // No username in this case
+        printf("Using fallback password authentication (no Base64)\n");
+      } else {
+        // Normal Base64 decoding succeeded
+        auto pos = user_passwd.find(":");
+        if (pos == std::string::npos) return -1;
+        user = user_passwd.substr(0, pos);
+        passwd = user_passwd.substr(pos+1, user_passwd.size()-pos);
+      }
+    } else if (line.find("Password: ") != std::string::npos) {
+      // Alternative fallback: explicit password header
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        return -1;
+      }
+      passwd = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      user = "";  // No username in this case
+      printf("Using explicit password header authentication\n");
     } else if (line.find("Position: ") != std::string::npos) {
       // Parse position from custom header: Position: lat=12.345678,lon=45.678901
       auto pos_beg = line.find(' ');
@@ -514,11 +533,30 @@ int NtripCaster::ClientConnectRequest(
         break;
       }
       user_passwd_base64 = line.substr(pos_beg+1, pos_end-pos_beg-1);
-      if (Base64Decode(user_passwd_base64, &user_passwd) == -1) break;
-      auto pos = user_passwd.find(":");
-      if (pos == std::string::npos) break;
-      user = user_passwd.substr(0, pos);
-      passwd = user_passwd.substr(pos+1, user_passwd.size()-pos);
+      if (Base64Decode(user_passwd_base64, &user_passwd) == -1) {
+        // Fallback: try to get just the password without Base64 decoding
+        // This handles cases where only password is sent, not username:password
+        passwd = user_passwd_base64;  // Use the raw value as password
+        user = "";  // No username in this case
+        printf("Using fallback password authentication (no Base64) for client\n");
+      } else {
+        // Normal Base64 decoding succeeded
+        auto pos = user_passwd.find(":");
+        if (pos == std::string::npos) break;
+        user = user_passwd.substr(0, pos);
+        passwd = user_passwd.substr(pos+1, user_passwd.size()-pos);
+      }
+    } else if (line.find("Password: ") != std::string::npos) {
+      // Alternative fallback: explicit password header
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        break;
+      }
+      passwd = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      user = "";  // No username in this case
+      printf("Using explicit password header authentication for client\n");
     } else if (line.find("Position: ") != std::string::npos) {
       // Parse client position from custom header
       auto pos_beg = line.find(' ');
