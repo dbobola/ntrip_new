@@ -74,8 +74,8 @@ void ClearAllConnection(int epoll_fd, std::list<MountPointInformation> *list) {
   if ((list != nullptr) && (!list->empty())) {
     auto it = list->begin();
     while (it != list->end()) {
-      ClearCilentConnection(epoll_fd, &(it->client_socket_list));
-      EpollUnregister(epoll_fd, it->server_fd);
+      ClearCilentConnection(epoll_fd_, &(it->client_socket_list));
+      EpollUnregister(epoll_fd_, it->server_fd);
       close(it->server_fd);
       it = list->erase(it);
     }
@@ -452,6 +452,26 @@ int NtripCaster::ServerConnectRequest(
       passwd = line.substr(pos_beg+1, pos_end-pos_beg-1);
       user = "";  // No username in this case
       printf("Using explicit password header authentication\n");
+    } else if (line.find("Username: ") != std::string::npos) {
+      // Explicit username header
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        return -1;
+      }
+      user = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      printf("Using explicit username header: %s\n", user.c_str());
+    } else if (line.find("User_name: ") != std::string::npos) {
+      // Alternative username header format
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        return -1;
+      }
+      user = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      printf("Using explicit user_name header: %s\n", user.c_str());
     } else if (line.find("Position: ") != std::string::npos) {
       // Parse position from custom header: Position: lat=12.345678,lon=45.678901
       auto pos_beg = line.find(' ');
@@ -557,6 +577,26 @@ int NtripCaster::ClientConnectRequest(
       passwd = line.substr(pos_beg+1, pos_end-pos_beg-1);
       user = "";  // No username in this case
       printf("Using explicit password header authentication for client\n");
+    } else if (line.find("Username: ") != std::string::npos) {
+      // Explicit username header
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        break;
+      }
+      user = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      printf("Using explicit username header for client: %s\n", user.c_str());
+    } else if (line.find("User_name: ") != std::string::npos) {
+      // Alternative username header format
+      auto pos_beg = line.find(' ');
+      auto pos_end = line.find('\r', pos_beg);
+      if (pos_beg == std::string::npos || pos_end == std::string::npos ||
+          pos_beg >= pos_end) {
+        break;
+      }
+      user = line.substr(pos_beg+1, pos_end-pos_beg-1);
+      printf("Using explicit user_name header for client: %s\n", user.c_str());
     } else if (line.find("Position: ") != std::string::npos) {
       // Parse client position from custom header
       auto pos_beg = line.find(' ');
