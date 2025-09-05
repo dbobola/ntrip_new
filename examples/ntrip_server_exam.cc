@@ -49,7 +49,7 @@ using libntrip::NtripServer;
 
 int main(void) {
   std::string ip = "127.0.0.1";
-  int port = 2102;
+  int port = 2101;
   std::string user = "test01";
   std::string passwd  = "123456";
   // Mount point must be consistent with 'ntrip_str':
