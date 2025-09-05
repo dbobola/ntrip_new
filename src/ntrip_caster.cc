@@ -74,8 +74,8 @@ void ClearAllConnection(int epoll_fd, std::list<MountPointInformation> *list) {
   if ((list != nullptr) && (!list->empty())) {
     auto it = list->begin();
     while (it != list->end()) {
-      ClearCilentConnection(epoll_fd_, &(it->client_socket_list));
-      EpollUnregister(epoll_fd_, it->server_fd);
+      ClearCilentConnection(epoll_fd, &(it->client_socket_list));
+      EpollUnregister(epoll_fd, it->server_fd);
       close(it->server_fd);
       it = list->erase(it);
     }
